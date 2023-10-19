@@ -8,6 +8,8 @@ export class Queue {
 
     public static addClient(client: Client) {
         this.waitingPlayer.push(client);
+        client.setInQueue(true);
+        console.log("Adding a client")
 
         if (this.waitingPlayer.length >= 2)
             this.launchGame()
@@ -27,6 +29,7 @@ export class Queue {
 
     private static launchGame()
     {
+        console.log("Starting game")
         //instance of Game is saved in Player class in constructor
         new Game(this.waitingPlayer[0], this.waitingPlayer[1]);
         //deleting first 2 players from waiting list

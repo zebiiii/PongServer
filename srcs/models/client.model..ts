@@ -12,6 +12,7 @@ export class Client {
 
 	private barY = Number(process.env.PLAYGROUND_HEIGHT) / 2;
 	private score: number = 0;
+	private inQueue:boolean = false;
 
     constructor(socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>) {
       	this.id = socket.id;
@@ -24,6 +25,17 @@ export class Client {
 	{
 		if (this.currentGame) throw new Error("Trying to set a currentGame to a client that already has one");
 		this.currentGame = game;
+	}
+
+	public setInQueue(status:boolean)
+	{
+		this.inQueue = status;
+	}
+
+	public resetCurrentGame()
+	{
+		this.currentGame = null;
+		this.score = 0;
 	}
 
 	public getId():string {return this.id};
@@ -80,5 +92,13 @@ export class Client {
 		let newY = Number(message[1]);
 		if (newY < 0 || newY >= playGroundHeight) return;
 		this.barY = newY;
+	}
+
+	public disconnect()
+	{
+		if (this.currentGame)
+			this.currentGame.stop();
+		if (this.inQueue)
+			Queue.removeClient(this);
 	}
 }

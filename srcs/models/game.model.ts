@@ -26,11 +26,19 @@ export class Game {
         this.startNewRound();
     };
 
+    public stop()
+    {
+        if (this.loop)
+            clearInterval(this.loop);
+        this.player1.resetCurrentGame();
+        this.player2.resetCurrentGame();
+    }
+
     private startNewRound()
     {
         //reset tick loop
         if (this.loop)
-            this.loop.unref;
+            clearInterval(this.loop);
         this.ball = new Ball(0, 0);
 
         this.startActualize();
@@ -39,7 +47,11 @@ export class Game {
     private startActualize()
     {
         this.loop = setInterval(() => {
-            //todo
+            this.maybeBallTakeBar();
+            this.maybeBallTakeWall();
+            this.maybeBallOut();
+
+            this.ball.actualize();
         }, this.updateInterval);
     }
 
@@ -62,7 +74,7 @@ export class Game {
             this.ball.takeBar();
 
         if ( this.ball.getY() <= this.barWidth
-            && (Math.abs(this.player2.getBarY() - this.ball.getY()) <= (this.barHeight / 2)))
+            && (Math.abs(this.player1.getBarY() - this.ball.getY()) <= (this.barHeight / 2)))
             this.ball.takeBar();
     }
 
@@ -119,5 +131,6 @@ class Ball {
     public takeBar()
     {
         this.x = -this.x;
+        this.y = -this.y;
     }
 }

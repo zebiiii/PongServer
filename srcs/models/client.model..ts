@@ -7,7 +7,7 @@ require('dotenv').config();
 export class Client {
     private id: string;
     private socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap, any>;
-	private functionMap = new Map<string, (m:string[]) => void>();
+	private functionMap: Map<string, ((m: string[]) => void)>;
 	private currentGame: (Game | null) = null;
 
 	private barY = Number(process.env.PLAYGROUND_HEIGHT) / 2;
@@ -18,8 +18,14 @@ export class Client {
       	this.id = socket.id;
       	this.socket = socket;
 
+		this.functionMap = new Map<string, ((m: string[]) => void)>();
 		this.initializeMap();
     }
+
+	public getMap(): Map<string, ((m: string[]) => void)>
+	{
+		return (this.functionMap);
+	}
 
 	public setCurrentGame(game: Game)
 	{
@@ -44,19 +50,12 @@ export class Client {
 
 	public getScore():number {return this.score};
 
-
 	public increaseScore() {
 		this.score++;
 	}
 
 	public isEqual(client: Client): boolean {
 		return (client.getId() === this.id)
-	}
-
-	private initializeMap()
-	{
-		this.functionMap.set("SET_STATUS", this.setStatus);
-		this.functionMap.set("SET_BAR", this.setBar);
 	}
   
     public send(type:string, message: string) {
@@ -70,7 +69,6 @@ export class Client {
 
     public receiveMessage(message:string) {
 		const words = message.split(' ');
-
 		if (!words[0]) return;
 
 		const func = this.functionMap.get(words[0]);
@@ -78,7 +76,14 @@ export class Client {
 		  func(words);
     }
 
+	private initializeMap()
+	{
+		this.functionMap.set("SET_STATUS", this.setStatus.bind(this));
+		this.functionMap.set("SET_BAR", this.setBar);
+	}
+
 	private setStatus(message:string[]) {
+		console.dir(this)
 		if (message[1] === "WAITING")
 			Queue.addClient(this);
 		if (message[1] === "IDLE")
@@ -96,6 +101,7 @@ export class Client {
 
 	public disconnect()
 	{
+		console.log("Client disconnected")
 		if (this.currentGame)
 			this.currentGame.stop();
 		if (this.inQueue)

@@ -6,7 +6,6 @@ export const handleConnection = (socket: Socket<DefaultEventsMap, DefaultEventsM
     console.log("new Client !");
 
     const client:Client = new Client(socket);
-    console.dir(client)
 
     //bind to avoid loose context
     socket.on('message', client.receiveMessage.bind(client));

@@ -9,6 +9,7 @@ class Client {
         this.barY = Number(process.env.PLAYGROUND_HEIGHT) / 2;
         this.score = 0;
         this.inQueue = false;
+        this.barHandler = null;
         this.id = socket.id;
         this.socket = socket;
         this.functionMap = new Map();
@@ -45,9 +46,17 @@ class Client {
         this.socket.emit(type, message);
     }
     sendBallPosition(pos) {
-        if (!pos.x || !pos.y)
-            throw new TypeError("Ball x and y position must be set.");
+        if (!isFinite(pos.x) || !isFinite(pos.y))
+            throw new TypeError("Ball x and y position must be a number.");
         this.socket.emit("ballPosition", JSON.stringify(pos));
+    }
+    sendOpponentBarY(y) {
+        if (!isFinite(y))
+            throw new TypeError("Bar y position must be a number.");
+        this.socket.emit("barPosition", JSON.stringify({ y: y }));
+    }
+    sendScore(score) {
+        this.socket.emit("updateScore", JSON.stringify(score));
     }
     receiveMessage(message) {
         const words = message.split(' ');
@@ -59,10 +68,9 @@ class Client {
     }
     initializeMap() {
         this.functionMap.set("SET_STATUS", this.setStatus.bind(this));
-        this.functionMap.set("SET_BAR", this.setBar);
+        this.functionMap.set("SET_BAR", this.setBar.bind(this));
     }
     setStatus(message) {
-        console.dir(this);
         if (message[1] === "WAITING")
             queue_model_1.Queue.addClient(this);
         if (message[1] === "IDLE")
@@ -76,6 +84,11 @@ class Client {
         if (newY < 0 || newY >= playGroundHeight)
             return;
         this.barY = newY;
+        if (this.barHandler)
+            this.barHandler(newY);
+    }
+    setBarHandler(callback) {
+        this.barHandler = callback;
     }
     disconnect() {
         console.log("Client disconnected");

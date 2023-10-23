@@ -10,6 +10,7 @@ export class Game {
     private playGroundWidth = Number(process.env.PLAYGROUND_WIDTH);
     private barHeight = 100;
     private barWidth = 10;
+    private ballSize = 15;
 
     //50ms for 20 ticks per seconds
     private updateInterval = 50;
@@ -36,10 +37,11 @@ export class Game {
 
     private startNewRound()
     {
+        console.log("Starting new round")
         //reset tick loop
         if (this.loop)
             clearInterval(this.loop);
-        this.ball = new Ball(0, 0);
+        this.ball = new Ball(this.playGroundWidth / 2, this.playGroundHeight / 2);
 
         this.startActualize();
     }
@@ -52,51 +54,74 @@ export class Game {
             this.maybeBallOut();
 
             this.ball.actualize();
-            console.log("Updating ball pose");
             this.player1.sendBallPosition(this.ball.getPosition());
-            this.player2.sendBallPosition(this.ball.getPosition());
+            this.player1.sendOpponentBarY(this.player2.getBarY())
+
+            this.player2.sendBallPosition(this.getInvertedPosition(this.ball.getPosition()));
+            this.player2.sendOpponentBarY(this.player1.getBarY())
         }, this.updateInterval);
+    }
+
+    private getInvertedPosition(pos: { x: number; y: number; })
+    {
+        return ({
+            x: this.getInvertedX(pos.x),
+            y: pos.y
+        })
+    }
+
+    private getInvertedX(x: number)
+    {
+        const middleX = this.playGroundWidth / 2;
+        return (2 * middleX - x)
     }
 
     private maybeBallTakeWall()
     {
-        if (this.ball.getY() >= this.playGroundHeight
-            || this.ball.getY() <= 0)
+        if (this.ball.getY() >= (this.playGroundHeight - 10 - (this.ballSize / 2))
+            || this.ball.getY() <= (10 + (this.ballSize / 2)))
             this.ball.takeWall();
     }
 
     private maybeBallTakeBar()
     {
-        const playGroundWidth = Number(process.env.PLAYGROUND_WIDTH);
-        
         //Condition for ball touching bar:
         //X: bar x is greater than (playGroundWidth - this.barWidth) or less than (this.barWidth)
         //Y: Absolute value of BallY - BarY is less than (BarHeight / 2)
-        if ( this.ball.getY() >= (playGroundWidth - this.barWidth)
+        if ( this.ball.getX() >= (this.playGroundWidth - this.barWidth - (this.ballSize / 2))
             && (Math.abs(this.player2.getBarY() - this.ball.getY()) <= (this.barHeight / 2)))
             this.ball.takeBar();
 
-        if ( this.ball.getY() <= this.barWidth
+        if ( this.ball.getX() <= (this.barWidth + (this.ballSize / 2))
             && (Math.abs(this.player1.getBarY() - this.ball.getY()) <= (this.barHeight / 2)))
             this.ball.takeBar();
     }
 
     private maybeBallOut()
     {
-        const playGroundWidth = Number(process.env.PLAYGROUND_WIDTH);
 
         //Check if ball still in the playground
-        if (this.ball.getX() <= playGroundWidth && this.ball.getX() >= 0) return;
+        if (this.ball.getX() <= this.playGroundWidth && this.ball.getX() >= 0) return;
 
         //Check who got the point
         //If ball exit left its p2
         //if ball exit right its p1
-        if (this.ball.getX() >= playGroundWidth)
+        if (this.ball.getX() >= this.playGroundWidth)
             this.player1.increaseScore();
 
         if (this.ball.getX() <= 0)
             this.player2.increaseScore();
 
+        const newScoreP1 = {
+            p1: this.player1.getScore(),
+            p2: this.player2.getScore()
+        }
+        const newScoreP2 = {
+            p1: this.player2.getScore(),
+            p2: this.player1.getScore()
+        }
+        this.player1.sendScore(newScoreP1);
+        this.player2.sendScore(newScoreP2);
         this.startNewRound();
     }
 }
@@ -104,8 +129,8 @@ export class Game {
 class Ball {
     private x: number;
     private y: number;
-    private xSpeed = 1;
-    private ySpeed = 1;
+    private xSpeed = 10;
+    private ySpeed = 10;
 
     constructor(x: number, y: number) {
         this.x = x;
@@ -132,12 +157,11 @@ class Ball {
 
     public takeWall()
     {
-        this.y = -this.y;
+        this.ySpeed = -this.ySpeed;
     }
 
     public takeBar()
     {
-        this.x = -this.x;
-        this.y = -this.y;
+        this.xSpeed = -this.xSpeed;
     }
 }
